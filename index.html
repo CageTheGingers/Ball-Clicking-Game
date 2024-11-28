@@ -91,12 +91,10 @@
     const generateBalls = () => {
       const balls = [];
       for (let i = 0; i < 10; i++) {
-        const randomX = Math.random() * window.innerWidth;
-        const randomY = Math.random() * window.innerHeight;
-
+        const randomX = Math.random() * (window.innerWidth - 30);
+        const randomY = Math.random() * (window.innerHeight - 30);
         balls.push(getBallPositionInPercentage(randomX, randomY));
       }
-
       firebase.database().ref('balls').set(balls);
     };
 
@@ -105,53 +103,59 @@
       balls.forEach((ballData) => {
         const ball = document.createElement('div');
         ball.classList.add('ball');
-
         const { x, y } = getBallPositionInPixels(ballData.x, ballData.y);
         ball.style.left = `${x}px`;
         ball.style.top = `${y}px`;
-
         ball.addEventListener('click', () => {
           ball.style.backgroundColor = 'green';
           removeBallFromFirebase(ballData);
         });
-
         ballsContainer.appendChild(ball);
       });
     };
 
     const removeBallFromFirebase = (ballData) => {
-      firebase.database().ref('balls').once('value').then((snapshot) => {
+      const ballsRef = firebase.database().ref('balls');
+      ballsRef.once('value', (snapshot) => {
         const balls = snapshot.val();
-        const updatedBalls = balls.filter(
-          (b) => b.x !== ballData.x || b.y !== ballData.y
-        );
-        firebase.database().ref('balls').set(updatedBalls);
+        const updatedBalls = balls.filter((ball) => {
+          return ball.x !== ballData.x || ball.y !== ballData.y;
+        });
+        ballsRef.set(updatedBalls);
+      });
+    };
+
+    const checkForBalls = () => {
+      const ballsRef = firebase.database().ref('balls');
+      ballsRef.on('value', (snapshot) => {
+        const balls = snapshot.val();
+        if (balls) {
+          renderBalls(balls);
+        }
+      });
+    };
+
+    const handleResize = () => {
+      const ballsRef = firebase.database().ref('balls');
+      ballsRef.once('value', (snapshot) => {
+        const balls = snapshot.val();
+        if (balls) {
+          renderBalls(balls);
+        }
       });
     };
 
     startButton.addEventListener('click', () => {
       if (!gameStarted) {
         gameStarted = true;
-        generateBalls(); 
+        generateBalls();
       }
     });
 
-    firebase.database().ref('balls').on('value', (snapshot) => {
-      const balls = snapshot.val();
-      if (balls) {
-        renderBalls(balls);
-      }
-    });
+    window.addEventListener('resize', handleResize);
 
-    window.addEventListener('resize', () => {
-      if (gameStarted) {
-        firebase.database().ref('balls').once('value').then((snapshot) => {
-          const balls = snapshot.val();
-          renderBalls(balls);
-        });
-      }
-    });
-
+    checkForBalls();
   </script>
+
 </body>
 </html>
