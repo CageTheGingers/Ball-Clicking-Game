@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ball Clicking Game</title>
   <style>
-    body { font-family: Arial, sans-serif; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
     #ballsContainer { position: relative; width: 100vw; height: 100vh; }
     .ball { width: 50px; height: 50px; position: absolute; background-color: red; border-radius: 50%; cursor: pointer; }
-    #startButton { padding: 10px 20px; font-size: 16px; }
+    #startButton { position: absolute; z-index: 10; padding: 10px 20px; font-size: 16px; top: 20px; left: 20px; }
     #winnerDisplay { font-size: 24px; font-weight: bold; margin-top: 20px; }
   </style>
 </head>
@@ -18,16 +18,16 @@
   <div id="winnerDisplay"></div>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
 
-  <script>
     const startButton = document.getElementById('startButton');
     const ballsContainer = document.getElementById('ballsContainer');
     const winnerDisplay = document.getElementById('winnerDisplay');
     let playerScores = { player1: 0, player2: 0 };
     let playerId = null;
-    
+
     const firebaseConfig = {
       apiKey: "AIzaSyBkkMuxOTuYkkH6w7RjD46eSaU1xPZX-7s",
       authDomain: "ball-clicking-game-bac45.firebaseapp.com",
@@ -37,9 +37,9 @@
       messagingSenderId: "193185201981",
       appId: "1:193185201981:web:f8c3433dc555e68c2acf54"
     };
-    
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
     let balls = [];
 
@@ -50,12 +50,12 @@
         let y = Math.random() * 100;
         balls.push({ x, y, clicked: false });
       }
-      database.ref('balls').set(balls);
+      set(ref(database, 'balls'), balls);
     }
 
     function updateScore(player, score) {
       playerScores[player] = score;
-      database.ref('score').set(playerScores);
+      set(ref(database, 'score'), playerScores);
     }
 
     function displayWinner() {
@@ -85,8 +85,7 @@
       balls.forEach((ball, index) => {
         const ballElement = document.createElement('div');
         ballElement.classList.add('ball');
-        ballElement.style.left = `${ball.x}%`;
-        ballElement.style.top = `${ball.y}%`;
+        updateBallPosition(ballElement, ball);
         ballsContainer.appendChild(ballElement);
 
         if (ball.clicked) {
@@ -98,11 +97,20 @@
             ball.clicked = true;
             ballElement.style.backgroundColor = 'green';
             updateScore(playerId, playerScores[playerId] + 1);
-            database.ref('balls').set(balls);
+            set(ref(database, 'balls'), balls);
             checkGameOver();
           }
         });
       });
+    }
+
+    function updateBallPosition(ballElement, ball) {
+      const containerWidth = ballsContainer.offsetWidth;
+      const containerHeight = ballsContainer.offsetHeight;
+      const xPosition = ball.x / 100 * containerWidth;
+      const yPosition = ball.y / 100 * containerHeight;
+      ballElement.style.left = `${xPosition}px`;
+      ballElement.style.top = `${yPosition}px`;
     }
 
     startButton.addEventListener('click', () => {
@@ -114,13 +122,20 @@
       startGame();
     });
 
-    database.ref('balls').on('value', snapshot => {
+    window.addEventListener('resize', () => {
+      if (balls.length > 0) {
+        ballsContainer.innerHTML = '';
+        createBallElements();
+      }
+    });
+
+    onValue(ref(database, 'balls'), snapshot => {
       balls = snapshot.val();
       ballsContainer.innerHTML = '';
       createBallElements();
     });
 
-    database.ref('score').on('value', snapshot => {
+    onValue(ref(database, 'score'), snapshot => {
       playerScores = snapshot.val();
     });
   </script>
