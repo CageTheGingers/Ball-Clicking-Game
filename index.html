@@ -111,6 +111,7 @@
             ballElement.style.display = 'none';
             updateScore(playerId, playerScores[playerId] + 1);
             checkGameOver();
+            set(ref(database, 'balls'), balls);
           }
         });
       });
