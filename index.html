@@ -5,11 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Multiplayer Ball Clicking Game</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
     #ballsContainer {
       position: relative;
       width: 100vw;
       height: 100vh;
       background-color: #f0f0f0;
+      overflow: hidden; /* Ensure the balls stay inside the screen */
     }
 
     .ball {
@@ -25,19 +32,18 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      padding: 10px 20px;
+      padding: 15px 30px;
       background-color: #4CAF50;
       color: white;
+      font-size: 16px;
       border: none;
+      border-radius: 5px;
       cursor: pointer;
+      z-index: 1000; /* Ensure button is on top of other elements */
     }
 
-    #timer {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      font-size: 24px;
-      font-weight: bold;
+    #startButton:hover {
+      background-color: #45a049;
     }
   </style>
 </head>
@@ -45,7 +51,6 @@
 
   <button id="startButton">Start Game</button>
   <div id="ballsContainer"></div>
-  <div id="timer">Timer: 5</div>
 
   <!-- Firebase 8.x SDK (Non-modular) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -74,7 +79,6 @@
     // DOM Elements
     const startButton = document.getElementById('startButton');
     const ballsContainer = document.getElementById('ballsContainer');
-    const timerDisplay = document.getElementById('timer');
 
     // When the page is ready, check Firebase connection
     firebase.database().ref('.info/connected').on('value', (snapshot) => {
@@ -97,32 +101,17 @@
         });
       }
 
-      console.log("Writing to Firebase:", { balls, timer: 5 });
+      console.log("Writing to Firebase:", { balls });
 
       // Write game data to Firebase
       const gameRef = firebase.database().ref('game');
       gameRef.set({
-        balls,
-        timer: 5
+        balls
       }).then(() => {
         console.log("Game data successfully written to Firebase");
-        startTimer();  // Start the countdown timer
       }).catch((error) => {
         console.error("Error writing to Firebase:", error);
       });
-    };
-
-    // Start countdown timer
-    const startTimer = () => {
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        timerDisplay.textContent = `Timer: ${timeLeft}`;
-
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          alert("Time's up! Game Over.");
-        }
-      }, 1000);
     };
 
     // Click event for balls
