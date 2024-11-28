@@ -72,6 +72,8 @@
     const startButton = document.getElementById('startButton');
     const ballsContainer = document.getElementById('ballsContainer');
 
+    let gameStarted = false;
+
     const getBallPositionInPercentage = (x, y) => {
       return {
         x: x / window.innerWidth,
@@ -106,6 +108,7 @@
         balls
       }).then(() => {
         console.log("Game data successfully written to Firebase");
+        gameStarted = true;  // Mark the game as started
       }).catch((error) => {
         console.error("Error writing to Firebase:", error);
       });
@@ -117,8 +120,8 @@
 
     firebase.database().ref('game').on('value', (snapshot) => {
       const gameData = snapshot.val();
-      if (gameData) {
-        ballsContainer.innerHTML = ''; // Clear balls container before re-rendering
+      if (gameData && gameStarted) {
+        ballsContainer.innerHTML = '';
 
         gameData.balls.forEach((ball) => {
           if (!ball.clicked) {
@@ -141,26 +144,32 @@
     });
 
     startButton.addEventListener('click', () => {
-      startGame();
+      if (!gameStarted) {
+        startGame(); 
+        startButton.disabled = true;  
+        startButton.textContent = 'Game Started';
+      }
     });
 
     window.addEventListener('resize', () => {
-      firebase.database().ref('game').once('value', (snapshot) => {
-        const gameData = snapshot.val();
-        if (gameData) {
-          gameData.balls.forEach((ball, index) => {
-            const newPosition = getBallPositionInPercentage(
-              ball.x * window.innerWidth,
-              ball.y * window.innerHeight
-            );
+      if (gameStarted) {
+        firebase.database().ref('game').once('value', (snapshot) => {
+          const gameData = snapshot.val();
+          if (gameData) {
+            gameData.balls.forEach((ball, index) => {
+              const newPosition = getBallPositionInPercentage(
+                ball.x * window.innerWidth,
+                ball.y * window.innerHeight
+              );
 
-            firebase.database().ref(`game/balls/${index}`).update({
-              x: newPosition.x / window.innerWidth,
-              y: newPosition.y / window.innerHeight
+              firebase.database().ref(`game/balls/${index}`).update({
+                x: newPosition.x / window.innerWidth,
+                y: newPosition.y / window.innerHeight
+              });
             });
-          });
-        }
-      });
+          }
+        });
+      }
     });
   </script>
 </body>
