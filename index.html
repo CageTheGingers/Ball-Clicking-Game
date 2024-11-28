@@ -72,22 +72,6 @@
       ballsContainer.innerHTML = '';
       winnerDisplay.textContent = '';
       generateBallPositions();
-      balls.forEach(ball => {
-        const ballElement = document.createElement('div');
-        ballElement.classList.add('ball');
-        ballElement.style.left = `${ball.x}%`;
-        ballElement.style.top = `${ball.y}%`;
-        ballsContainer.appendChild(ballElement);
-
-        ballElement.addEventListener('click', () => {
-          if (!ball.clicked) {
-            ball.clicked = true;
-            ballElement.style.backgroundColor = 'green';
-            updateScore(playerId, playerScores[playerId] + 1);
-            checkGameOver();
-          }
-        });
-      });
     }
 
     function checkGameOver() {
@@ -97,19 +81,8 @@
       }
     }
 
-    startButton.addEventListener('click', () => {
-      if (!playerId) {
-        playerId = 'player1';
-      } else if (playerId === 'player1') {
-        playerId = 'player2';
-      }
-      startGame();
-    });
-
-    database.ref('balls').on('value', snapshot => {
-      balls = snapshot.val();
-      ballsContainer.innerHTML = '';
-      balls.forEach(ball => {
+    function createBallElements() {
+      balls.forEach((ball, index) => {
         const ballElement = document.createElement('div');
         ballElement.classList.add('ball');
         ballElement.style.left = `${ball.x}%`;
@@ -130,6 +103,21 @@
           }
         });
       });
+    }
+
+    startButton.addEventListener('click', () => {
+      if (!playerId) {
+        playerId = 'player1';
+      } else if (playerId === 'player1') {
+        playerId = 'player2';
+      }
+      startGame();
+    });
+
+    database.ref('balls').on('value', snapshot => {
+      balls = snapshot.val();
+      ballsContainer.innerHTML = '';
+      createBallElements();
     });
 
     database.ref('score').on('value', snapshot => {
