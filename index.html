@@ -129,7 +129,7 @@
       const ballsRef = firebase.database().ref('balls');
       ballsRef.on('value', (snapshot) => {
         const balls = snapshot.val();
-        if (balls) {
+        if (balls && gameStarted) {
           renderBalls(balls);
         }
       });
@@ -139,7 +139,7 @@
       const ballsRef = firebase.database().ref('balls');
       ballsRef.once('value', (snapshot) => {
         const balls = snapshot.val();
-        if (balls) {
+        if (balls && gameStarted) {
           renderBalls(balls);
         }
       });
