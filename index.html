@@ -135,16 +135,6 @@
       });
     };
 
-    const handleResize = () => {
-      const ballsRef = firebase.database().ref('balls');
-      ballsRef.once('value', (snapshot) => {
-        const balls = snapshot.val();
-        if (balls && gameStarted) {
-          renderBalls(balls);
-        }
-      });
-    };
-
     startButton.addEventListener('click', () => {
       if (!gameStarted) {
         gameStarted = true;
@@ -152,7 +142,15 @@
       }
     });
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', () => {
+      const ballsRef = firebase.database().ref('balls');
+      ballsRef.once('value', (snapshot) => {
+        const balls = snapshot.val();
+        if (balls && gameStarted) {
+          renderBalls(balls);
+        }
+      });
+    });
 
     checkForBalls();
   </script>
