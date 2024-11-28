@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplayer Ball Clicking Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #ballsContainer {
+      position: relative;
+      width: 100%;
+      height: 80vh;
+      background-color: #f0f0f0;
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .ball {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: blue;
+      cursor: pointer;
+    }
+    #startButton {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+    #scoreBoard {
+      margin: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Multiplayer Ball Clicking Game</h1>
+  <button id="startButton">Start Game</button>
+  <div id="ballsContainer"></div>
+  <div id="scoreBoard">
+    <p>Player 1 Score: <span id="player1Score">0</span></p>
+    <p>Player 2 Score: <span id="player2Score">0</span></p>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js"></script>
+
+  <script>
+    // Firebase Configuration (Replace with your own keys)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBkkMuxOTuYkkH6w7RjD46eSaU1xPZX-7s",
+      authDomain: "ball-clicking-game-bac45.firebaseapp.com",
+      databaseURL: "https://ball-clicking-game-bac45-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "ball-clicking-game-bac45",
+      storageBucket: "ball-clicking-game-bac45.firebasestorage.app",
+      messagingSenderId: "193185201981",
+      appId: "1:193185201981:web:f8c3433dc555e68c2acf54"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    const startButton = document.getElementById('startButton');
+    const ballsContainer = document.getElementById('ballsContainer');
+    const player1ScoreDisplay = document.getElementById('player1Score');
+    const player2ScoreDisplay = document.getElementById('player2Score');
+    let player1Score = 0;
+    let player2Score = 0;
+
+    // Generate Balls Function
+    function generateBalls() {
+      ballsContainer.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const ball = document.createElement('div');
+        ball.classList.add('ball');
+        const x = Math.random() * (window.innerWidth - 50);
+        const y = Math.random() * (window.innerHeight - 150);
+        ball.style.left = `${x}px`;
+        ball.style.top = `${y}px`;
+        ballsContainer.appendChild(ball);
+
+        // Save Ball in Database
+        firebase.database().ref(`balls/${i}`).set({
+          x,
+          y,
+          clicked: false
+        });
+
+        ball.addEventListener('click', () => handleBallClick(i));
+      }
+    }
+
+    // Handle Ball Click
+    function handleBallClick(ballId) {
+      firebase.database().ref(`balls/${ballId}`).once('value').then(snapshot => {
+        if (!snapshot.val().clicked) {
+          // Mark Ball as Clicked
+          firebase.database().ref(`balls/${ballId}`).update({
+            clicked: true
+          });
+
+          // Update Player Score
+          updatePlayerScore();
+        }
+      });
+    }
+
+    // Update Player Score
+    function updatePlayerScore() {
+      player1Score++;
+      firebase.database().ref('scores/player1').set(player1Score);
+    }
+
+    // Synchronize Data
+    firebase.database().ref('balls').on('value', snapshot => {
+      const balls = snapshot.val();
+      if (balls) {
+        document.querySelectorAll('.ball').forEach((ball, index) => {
+          if (balls[index].clicked) {
+            ball.style.display = 'none';
+          }
+        });
+      }
+    });
+
+    // Update Scores
+    firebase.database().ref('scores').on('value', snapshot => {
+      const scores = snapshot.val();
+      if (scores) {
+        player1ScoreDisplay.textContent = scores.player1 || 0;
+        player2ScoreDisplay.textContent = scores.player2 || 0;
+      }
+    });
+
+    // Start Game
+    startButton.addEventListener('click', () => {
+      generateBalls();
+      player1Score = 0;
+      player2Score = 0;
+      firebase.database().ref('scores').set({
+        player1: 0,
+        player2: 0
+      });
+    });
+  </script>
+</body>
+</html>
