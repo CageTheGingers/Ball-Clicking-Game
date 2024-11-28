@@ -131,6 +131,7 @@
           ball.style.backgroundColor = 'green';
           removeBallFromFirebase(ballData);
           currentPlayer = currentPlayer === 1 ? 2 : 1;
+          updatePlayerClicks();
           checkGameEnd();
         });
         ballsContainer.appendChild(ball);
@@ -146,6 +147,11 @@
         });
         ballsRef.set(updatedBalls);
       });
+    };
+
+    const updatePlayerClicks = () => {
+      firebase.database().ref('player1Clicks').set(player1Clicks);
+      firebase.database().ref('player2Clicks').set(player2Clicks);
     };
 
     const checkForBalls = () => {
@@ -170,6 +176,8 @@
         winnerMessage.style.display = 'block';
         gameStarted = false;
         firebase.database().ref('balls').set([]);
+        firebase.database().ref('player1Clicks').set(0);
+        firebase.database().ref('player2Clicks').set(0);
       }
     };
 
