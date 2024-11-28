@@ -85,8 +85,6 @@
     const winnerMessage = document.getElementById('winnerMessage');
 
     let gameStarted = false;
-    let player1Clicks = 0;
-    let player2Clicks = 0;
     let totalBalls = 10;
     let currentPlayer = 1;
 
@@ -123,19 +121,26 @@
         ball.style.left = `${x}px`;
         ball.style.top = `${y}px`;
         ball.addEventListener('click', () => {
-          if (currentPlayer === 1) {
-            player1Clicks++;
-          } else {
-            player2Clicks++;
-          }
-          ball.style.backgroundColor = 'green';
-          removeBallFromFirebase(ballData);
-          currentPlayer = currentPlayer === 1 ? 2 : 1;
-          updatePlayerClicks();
-          checkGameEnd();
+          handleBallClick(ballData);
         });
         ballsContainer.appendChild(ball);
       });
+    };
+
+    const handleBallClick = (ballData) => {
+      if (currentPlayer === 1) {
+        firebase.database().ref('player1Clicks').transaction((current) => {
+          return (current || 0) + 1;
+        });
+      } else {
+        firebase.database().ref('player2Clicks').transaction((current) => {
+          return (current || 0) + 1;
+        });
+      }
+      ball.style.backgroundColor = 'green';
+      removeBallFromFirebase(ballData);
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      checkGameEnd();
     };
 
     const removeBallFromFirebase = (ballData) => {
@@ -149,44 +154,35 @@
       });
     };
 
-    const updatePlayerClicks = () => {
-      firebase.database().ref('player1Clicks').set(player1Clicks);
-      firebase.database().ref('player2Clicks').set(player2Clicks);
-    };
-
-    const checkForBalls = () => {
-      const ballsRef = firebase.database().ref('balls');
-      ballsRef.on('value', (snapshot) => {
-        const balls = snapshot.val();
-        if (balls && gameStarted) {
-          renderBalls(balls);
-        }
-      });
-    };
-
     const checkGameEnd = () => {
-      if (player1Clicks + player2Clicks === totalBalls) {
-        if (player1Clicks > player2Clicks) {
-          winnerMessage.innerHTML = "Player 1 wins!";
-        } else if (player2Clicks > player1Clicks) {
-          winnerMessage.innerHTML = "Player 2 wins!";
-        } else {
-          winnerMessage.innerHTML = "It's a tie!";
-        }
-        winnerMessage.style.display = 'block';
-        gameStarted = false;
-        firebase.database().ref('balls').set([]);
-        firebase.database().ref('player1Clicks').set(0);
-        firebase.database().ref('player2Clicks').set(0);
-      }
+      const player1ClicksRef = firebase.database().ref('player1Clicks');
+      const player2ClicksRef = firebase.database().ref('player2Clicks');
+      player1ClicksRef.once('value', (snapshot1) => {
+        player2ClicksRef.once('value', (snapshot2) => {
+          const player1Clicks = snapshot1.val() || 0;
+          const player2Clicks = snapshot2.val() || 0;
+
+          if (player1Clicks + player2Clicks === totalBalls) {
+            if (player1Clicks > player2Clicks) {
+              winnerMessage.innerHTML = "Player 1 wins!";
+            } else if (player2Clicks > player1Clicks) {
+              winnerMessage.innerHTML = "Player 2 wins!";
+            } else {
+              winnerMessage.innerHTML = "It's a tie!";
+            }
+            winnerMessage.style.display = 'block';
+            firebase.database().ref('balls').set([]);
+            firebase.database().ref('player1Clicks').set(0);
+            firebase.database().ref('player2Clicks').set(0);
+          }
+        });
+      });
     };
 
     startButton.addEventListener('click', () => {
       if (!gameStarted) {
         gameStarted = true;
         generateBalls();
-        player1Clicks = 0;
-        player2Clicks = 0;
         winnerMessage.style.display = 'none';
       }
     });
@@ -200,6 +196,16 @@
         }
       });
     });
+
+    const checkForBalls = () => {
+      const ballsRef = firebase.database().ref('balls');
+      ballsRef.on('value', (snapshot) => {
+        const balls = snapshot.val();
+        if (balls && gameStarted) {
+          renderBalls(balls);
+        }
+      });
+    };
 
     checkForBalls();
   </script>
