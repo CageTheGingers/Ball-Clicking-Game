@@ -118,7 +118,8 @@
     firebase.database().ref('game').on('value', (snapshot) => {
       const gameData = snapshot.val();
       if (gameData) {
-        ballsContainer.innerHTML = ''; 
+        ballsContainer.innerHTML = ''; // Clear balls container before re-rendering
+
         gameData.balls.forEach((ball) => {
           if (!ball.clicked) {
             const ballElement = document.createElement('div');
