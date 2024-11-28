@@ -45,12 +45,23 @@
     #startButton:hover {
       background-color: #45a049;
     }
+
+    #winnerMessage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #333;
+      display: none;
+    }
   </style>
 </head>
 <body>
 
   <button id="startButton">Start Game</button>
   <div id="ballsContainer"></div>
+  <div id="winnerMessage"></div>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -71,8 +82,12 @@
 
     const startButton = document.getElementById('startButton');
     const ballsContainer = document.getElementById('ballsContainer');
+    const winnerMessage = document.getElementById('winnerMessage');
 
     let gameStarted = false;
+    let player1Clicks = 0;
+    let player2Clicks = 0;
+    let totalBalls = 10;
 
     const getBallPositionInPercentage = (x, y) => {
       return {
@@ -90,7 +105,7 @@
 
     const generateBalls = () => {
       const balls = [];
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < totalBalls; i++) {
         const randomX = Math.random() * (window.innerWidth - 30);
         const randomY = Math.random() * (window.innerHeight - 30);
         balls.push(getBallPositionInPercentage(randomX, randomY));
@@ -100,15 +115,21 @@
 
     const renderBalls = (balls) => {
       ballsContainer.innerHTML = '';
-      balls.forEach((ballData) => {
+      balls.forEach((ballData, index) => {
         const ball = document.createElement('div');
         ball.classList.add('ball');
         const { x, y } = getBallPositionInPixels(ballData.x, ballData.y);
         ball.style.left = `${x}px`;
         ball.style.top = `${y}px`;
         ball.addEventListener('click', () => {
+          if (index % 2 === 0) {
+            player1Clicks++;
+          } else {
+            player2Clicks++;
+          }
           ball.style.backgroundColor = 'green';
           removeBallFromFirebase(ballData);
+          checkGameEnd();
         });
         ballsContainer.appendChild(ball);
       });
@@ -135,10 +156,28 @@
       });
     };
 
+    const checkGameEnd = () => {
+      if (player1Clicks + player2Clicks === totalBalls) {
+        if (player1Clicks > player2Clicks) {
+          winnerMessage.innerHTML = "Player 1 wins!";
+        } else if (player2Clicks > player1Clicks) {
+          winnerMessage.innerHTML = "Player 2 wins!";
+        } else {
+          winnerMessage.innerHTML = "It's a tie!";
+        }
+        winnerMessage.style.display = 'block';
+        gameStarted = false;
+        firebase.database().ref('balls').set([]);  // Clear the balls from Firebase
+      }
+    };
+
     startButton.addEventListener('click', () => {
       if (!gameStarted) {
         gameStarted = true;
         generateBalls();
+        player1Clicks = 0;
+        player2Clicks = 0;
+        winnerMessage.style.display = 'none';  // Hide winner message
       }
     });
 
