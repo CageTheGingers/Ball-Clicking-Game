@@ -3,13 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ball Clicking Game</title>
+  <title>Multiplayer Ball Clicking Game</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    #ballsContainer { position: relative; width: 100vw; height: 100vh; }
-    .ball { width: 50px; height: 50px; position: absolute; background-color: red; border-radius: 50%; cursor: pointer; }
-    #startButton { position: absolute; z-index: 10; padding: 10px 20px; font-size: 16px; top: 20px; left: 20px; }
-    #winnerDisplay { font-size: 24px; font-weight: bold; margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #ballsContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    .ball {
+      width: 50px;
+      height: 50px;
+      position: absolute;
+      background-color: red;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    #startButton {
+      position: absolute;
+      z-index: 10;
+      padding: 10px 20px;
+      font-size: 16px;
+      top: 20px;
+      left: 20px;
+    }
+    #winnerDisplay {
+      font-size: 24px;
+      font-weight: bold;
+      position: absolute;
+      top: 80px;
+      left: 20px;
+    }
   </style>
 </head>
 <body>
@@ -17,7 +45,6 @@
   <div id="ballsContainer"></div>
   <div id="winnerDisplay"></div>
 
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
@@ -60,11 +87,11 @@
 
     function displayWinner() {
       if (playerScores.player1 === playerScores.player2) {
-        winnerDisplay.textContent = 'It\'s a tie!';
+        winnerDisplay.textContent = "It's a tie!";
       } else if (playerScores.player1 > playerScores.player2) {
-        winnerDisplay.textContent = 'Player 1 wins!';
+        winnerDisplay.textContent = "Player 1 wins!";
       } else {
-        winnerDisplay.textContent = 'Player 2 wins!';
+        winnerDisplay.textContent = "Player 2 wins!";
       }
     }
 
@@ -72,6 +99,21 @@
       ballsContainer.innerHTML = '';
       winnerDisplay.textContent = '';
       generateBallPositions();
+      balls.forEach(ball => {
+        const ballElement = document.createElement('div');
+        ballElement.classList.add('ball');
+        ballElement.style.left = `${ball.x}%`;
+        ballElement.style.top = `${ball.y}%`;
+        ballsContainer.appendChild(ballElement);
+        ballElement.addEventListener('click', () => {
+          if (!ball.clicked) {
+            ball.clicked = true;
+            ballElement.style.display = 'none';
+            updateScore(playerId, playerScores[playerId] + 1);
+            checkGameOver();
+          }
+        });
+      });
     }
 
     function checkGameOver() {
@@ -79,38 +121,6 @@
       if (remainingBalls === 0) {
         displayWinner();
       }
-    }
-
-    function createBallElements() {
-      balls.forEach((ball, index) => {
-        const ballElement = document.createElement('div');
-        ballElement.classList.add('ball');
-        updateBallPosition(ballElement, ball);
-        ballsContainer.appendChild(ballElement);
-
-        if (ball.clicked) {
-          ballElement.style.backgroundColor = 'green';
-        }
-
-        ballElement.addEventListener('click', () => {
-          if (!ball.clicked && playerId) {
-            ball.clicked = true;
-            ballElement.style.backgroundColor = 'green';
-            updateScore(playerId, playerScores[playerId] + 1);
-            set(ref(database, 'balls'), balls);
-            checkGameOver();
-          }
-        });
-      });
-    }
-
-    function updateBallPosition(ballElement, ball) {
-      const containerWidth = ballsContainer.offsetWidth;
-      const containerHeight = ballsContainer.offsetHeight;
-      const xPosition = ball.x / 100 * containerWidth;
-      const yPosition = ball.y / 100 * containerHeight;
-      ballElement.style.left = `${xPosition}px`;
-      ballElement.style.top = `${yPosition}px`;
     }
 
     startButton.addEventListener('click', () => {
@@ -122,20 +132,31 @@
       startGame();
     });
 
-    window.addEventListener('resize', () => {
-      if (balls.length > 0) {
-        ballsContainer.innerHTML = '';
-        createBallElements();
-      }
-    });
-
-    onValue(ref(database, 'balls'), snapshot => {
+    onValue(ref(database, 'balls'), (snapshot) => {
       balls = snapshot.val();
       ballsContainer.innerHTML = '';
-      createBallElements();
+      balls.forEach(ball => {
+        const ballElement = document.createElement('div');
+        ballElement.classList.add('ball');
+        ballElement.style.left = `${ball.x}%`;
+        ballElement.style.top = `${ball.y}%`;
+        ballsContainer.appendChild(ballElement);
+        if (ball.clicked) {
+          ballElement.style.display = 'none';
+        }
+        ballElement.addEventListener('click', () => {
+          if (!ball.clicked && playerId) {
+            ball.clicked = true;
+            ballElement.style.display = 'none';
+            updateScore(playerId, playerScores[playerId] + 1);
+            set(ref(database, 'balls'), balls);
+            checkGameOver();
+          }
+        });
+      });
     });
 
-    onValue(ref(database, 'score'), snapshot => {
+    onValue(ref(database, 'score'), (snapshot) => {
       playerScores = snapshot.val();
     });
   </script>
