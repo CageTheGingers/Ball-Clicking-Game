@@ -143,6 +143,25 @@
     startButton.addEventListener('click', () => {
       startGame();
     });
+
+    window.addEventListener('resize', () => {
+      firebase.database().ref('game').once('value', (snapshot) => {
+        const gameData = snapshot.val();
+        if (gameData) {
+          gameData.balls.forEach((ball, index) => {
+            const newPosition = getBallPositionInPercentage(
+              ball.x * window.innerWidth,
+              ball.y * window.innerHeight
+            );
+
+            firebase.database().ref(`game/balls/${index}`).update({
+              x: newPosition.x / window.innerWidth,
+              y: newPosition.y / window.innerHeight
+            });
+          });
+        }
+      });
+    });
   </script>
 </body>
 </html>
