@@ -88,6 +88,7 @@
     let player1Clicks = 0;
     let player2Clicks = 0;
     let totalBalls = 10;
+    let currentPlayer = 1;
 
     const getBallPositionInPercentage = (x, y) => {
       return {
@@ -122,13 +123,14 @@
         ball.style.left = `${x}px`;
         ball.style.top = `${y}px`;
         ball.addEventListener('click', () => {
-          if (index % 2 === 0) {
+          if (currentPlayer === 1) {
             player1Clicks++;
           } else {
             player2Clicks++;
           }
           ball.style.backgroundColor = 'green';
           removeBallFromFirebase(ballData);
+          currentPlayer = currentPlayer === 1 ? 2 : 1;
           checkGameEnd();
         });
         ballsContainer.appendChild(ball);
@@ -167,7 +169,7 @@
         }
         winnerMessage.style.display = 'block';
         gameStarted = false;
-        firebase.database().ref('balls').set([]);  // Clear the balls from Firebase
+        firebase.database().ref('balls').set([]);
       }
     };
 
@@ -177,7 +179,7 @@
         generateBalls();
         player1Clicks = 0;
         player2Clicks = 0;
-        winnerMessage.style.display = 'none';  // Hide winner message
+        winnerMessage.style.display = 'none';
       }
     });
 
