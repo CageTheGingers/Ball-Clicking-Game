@@ -88,89 +88,70 @@
       };
     };
 
-    const startGame = () => {
+    const generateBalls = () => {
       const balls = [];
       for (let i = 0; i < 10; i++) {
         const randomX = Math.random() * window.innerWidth;
         const randomY = Math.random() * window.innerHeight;
-        const position = getBallPositionInPercentage(randomX, randomY);
 
-        balls.push({
-          id: i,
-          x: position.x,
-          y: position.y,
-          clicked: false
-        });
+        balls.push(getBallPositionInPercentage(randomX, randomY));
       }
 
-      const gameRef = firebase.database().ref('game');
-      gameRef.set({
-        balls
-      }).then(() => {
-        console.log("Game data successfully written to Firebase");
-        gameStarted = true;  // Mark the game as started
-      }).catch((error) => {
-        console.error("Error writing to Firebase:", error);
+      firebase.database().ref('balls').set(balls);
+    };
+
+    const renderBalls = (balls) => {
+      ballsContainer.innerHTML = '';
+      balls.forEach((ballData) => {
+        const ball = document.createElement('div');
+        ball.classList.add('ball');
+
+        const { x, y } = getBallPositionInPixels(ballData.x, ballData.y);
+        ball.style.left = `${x}px`;
+        ball.style.top = `${y}px`;
+
+        ball.addEventListener('click', () => {
+          ball.style.backgroundColor = 'green';
+          removeBallFromFirebase(ballData);
+        });
+
+        ballsContainer.appendChild(ball);
       });
     };
 
-    const handleBallClick = (ballId) => {
-      firebase.database().ref(`game/balls/${ballId}/clicked`).set(true);
+    const removeBallFromFirebase = (ballData) => {
+      firebase.database().ref('balls').once('value').then((snapshot) => {
+        const balls = snapshot.val();
+        const updatedBalls = balls.filter(
+          (b) => b.x !== ballData.x || b.y !== ballData.y
+        );
+        firebase.database().ref('balls').set(updatedBalls);
+      });
     };
-
-    firebase.database().ref('game').on('value', (snapshot) => {
-      const gameData = snapshot.val();
-      if (gameData && gameStarted) {
-        ballsContainer.innerHTML = '';
-
-        gameData.balls.forEach((ball) => {
-          if (!ball.clicked) {
-            const ballElement = document.createElement('div');
-            ballElement.classList.add('ball');
-            const ballPosition = getBallPositionInPixels(ball.x, ball.y);
-
-            ballElement.style.left = `${ballPosition.x}px`;
-            ballElement.style.top = `${ballPosition.y}px`;
-            ballElement.dataset.id = ball.id;
-
-            ballElement.addEventListener('click', () => {
-              handleBallClick(ball.id);
-            });
-
-            ballsContainer.appendChild(ballElement);
-          }
-        });
-      }
-    });
 
     startButton.addEventListener('click', () => {
       if (!gameStarted) {
-        startGame(); 
-        startButton.disabled = true;  
-        startButton.textContent = 'Game Started';
+        gameStarted = true;
+        generateBalls(); 
+      }
+    });
+
+    firebase.database().ref('balls').on('value', (snapshot) => {
+      const balls = snapshot.val();
+      if (balls) {
+        renderBalls(balls);
       }
     });
 
     window.addEventListener('resize', () => {
       if (gameStarted) {
-        firebase.database().ref('game').once('value', (snapshot) => {
-          const gameData = snapshot.val();
-          if (gameData) {
-            gameData.balls.forEach((ball, index) => {
-              const newPosition = getBallPositionInPercentage(
-                ball.x * window.innerWidth,
-                ball.y * window.innerHeight
-              );
-
-              firebase.database().ref(`game/balls/${index}`).update({
-                x: newPosition.x / window.innerWidth,
-                y: newPosition.y / window.innerHeight
-              });
-            });
-          }
+        firebase.database().ref('balls').once('value').then((snapshot) => {
+          const balls = snapshot.val();
+          renderBalls(balls);
         });
       }
     });
+
   </script>
 </body>
 </html>
